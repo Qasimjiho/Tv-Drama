@@ -1,0 +1,124 @@
+<!DOCTYPE html>‎
+‎<html lang="en">
+‎
+‎<head>
+‎    <meta charset="UTF-8">
+‎    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+‎    <title>GEO TV ENTERTAINMENT| Qasim jiho</title>
+    <!-- Schema for SEO -->
+    <script type="application/ld+json">
+  {
+      "@context": "https://schema.org",
+      "@type": "VideoObject",
+      "name": "Qasim",
+      "thumbnailUrl": "https://via.placeholder.com/1280x720?text=Pak+Live+TV",
+      "uploadDate": "2025-09-15T02:43:09+00:00",
+      "duration": "PT2H",
+      "contentUrl": "https://jk3lz82elw79-hls-live.5centscdn.com/harPalGeo/955ad3298db330b5ee880c2c9e6f23a0.sdp/chunks.m3u8"
+  }
+  </script>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <style>
+        /* Dark neon theme */
+        body {
+            background-color: #19cc02;
+            color: #f11313;
+        }
+
+        .banner-bg {
+            background: linear-gradient(to right, #b40808, #3cb604);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .banner-bg::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: url('https://via.placeholder.com/1920x1080?text=Live+Cricket+HD') no-repeat center/cover;
+            opacity: 0.15;
+        }
+
+        .banner-content {
+            position: relative;
+            z-index: 1;
+        }
+
+        .video-container {
+            box-shadow: 0 0 25px rgba(66, 13, 13, 0.4);
+            border-radius: 14px;
+            overflow: hidden;
+        }
+    </style>
+</head>
+
+<body class="bg-black text-white font-sans">
+
+    <!-- Banner -->
+    <header class="banner-bg py-16 md:py-20 text-center">
+        <div class="banner-content container mx-auto px-4">
+            <h1 class="text-4xl md:text-6xl font-extrabold text-green-400 drop-shadow-lg mb-4">
+                QASIM JIHO
+            </h1>
+            <p class="text-lg md:text-2xl text-gray-300 mb-6">
+                FREE GEO HD TV STREAMING BY <span class="text-orange-400">QASIM JIHO</span>
+            </p>
+
+        </div>
+    </header>
+
+    <!-- Video Player -->
+    <section class="container mx-auto px-4 py-10">
+        <div class="video-container max-w-6xl mx-auto">
+            <video id="video" class="w-full h-auto" controls autoplay>
+                Your browser does not support the video tag.
+            </video>
+        </div>
+    </section>
+    <p class="text-green-400 py-10 text-center color: red;">
+        <a href="about.html"
+            target="_blank"> Green Entertainment TV HD
+    </p>
+    </a>
+    <!-- Footer -->
+    <footer class="bg-black-400 py-10 text-center">
+        <p class="text-gray-300 text-lg mb-2">Developed by <strong><span class="text-yellow-400">Qasim
+                    Jiho</span></strong></p>
+        <p class="text-gray-400 mb-4">Get live drama updates and exclusive streams!</p>
+
+        <p class="text-gray-500 mt-4 text-sm">&copy; 2025 &rightarrow; Qasim Jiho &leftarrow;Trick. All rights
+            reserved.</p>
+    </footer>
+
+    <!-- HLS.js Video Script -->
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <script>
+        const video = document.getElementById('video');
+        const videoSrc = 'https://jk3lz82elw79-hls-live.5centscdn.com/harPalGeo/955ad3298db330b5ee880c2c9e6f23a0.sdp/chunks.m3u8';
+
+        if (Hls.isSupported()) {
+            const hls = new Hls();
+            hls.loadSource(videoSrc);
+            hls.attachMedia(video);
+            hls.on(Hls.Events.MANIFEST_PARSED, () => {
+                video.play();
+            });
+        } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+            video.src = videoSrc;
+            video.addEventListener('loadedmetadata', () => {
+                video.play();
+            });
+        }
+    </script>
+    <!-- Cloudflare Pages Analytics -->
+    <script defer src='https://static.cloudflareinsights.com/beacon.min.js'
+        data-cf-beacon='{"token": "5519fa51888747b28b230a66f557b8ef"}'></script><!-- Cloudflare Pages Analytics -->
+</body>
+
+</html>
