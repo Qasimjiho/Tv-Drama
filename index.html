@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QASIM JIHO TV</title>
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            margin: 0;
+            font-family: sans-serif;
+            background: linear-gradient(135deg, #363232, #b1af40);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        h1 {
+            color: #fff;
+            margin: 10px 0;
+            font-size: 1.8rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        #backBtn {
+            width: 40px;
+            height: 40px;
+            background: rgba(0, 0, 0, 0.6);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+
+        #backBtn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .player-box {
+            width: 100%;
+            max-width: 900px;
+            aspect-ratio: 16/9;
+            background: black;
+            border-radius: 20px;
+            overflow: hidden;
+            position: sticky;
+            top: 5px;
+            margin-bottom: 5px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6);
+            position: relative;
+        }
+
+        #loader {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0, 0, 0, 0.6);
+            z-index: 100;
+            visibility: hidden;
+        }
+
+        .loader-spin {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid #9333ea;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .controls {
+            position: absolute;
+            bottom: 40px;
+            left: 0;
+            right: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            opacity: 1;
+            transition: opacity 0.4s;
+            flex-wrap: wrap;
+            z-index: 20;
+        }
+
+        .controls.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .control-btn {
+            background: rgba(0, 0, 0, 0.6);
+            color: white;
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 6px;
+            cursor: pointer;
+            transition: 0.3s;
+            font-size: 18px;
+        }
+
+        .control-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        #channelName {
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            background: rgba(0, 0, 0, 0.6);
+            color: rgb(0, 0, 0);
+            padding: 3px 8px;
+            border-radius: 6px;
+            font-size: 14px;
+            z-index: 25;
+        }
+
+        #qualityMenu {
+            position: absolute;
+            bottom: 80px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.85);
+            border-radius: 8px;
+            padding: 6px;
+            display: none;
+            z-index: 30;
+        }
+
+        #qualityMenu button {
+            display: block;
+            width: 100%;
+            padding: 4px 10px;
+            color: white;
+            background: transparent;
+            border: none;
+            text-align: left;
+            cursor: pointer;
+            border-radius: 6px;
+            margin-bottom: 4px;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+        }
+
+        #qualityMenu button:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        #qualityMenu button.active-quality {
+            background: #9333ea;
+            color: white;
+            box-shadow: 0 0 10px #9333ea;
+        }
+
+        #progressContainer {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            right: 10px;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 3px;
+            cursor: pointer;
+            z-index: 20;
+        }
+
+        #progressBar {
+            width: 0%;
+            height: 100%;
+            background: #9333ea;
+            border-radius: 3px;
+        }
+
+        #progressHandle {
+            position: absolute;
+            top: -4px;
+            width: 14px;
+            height: 14px;
+            background: #fff;
+            border-radius: 50%;
+            transform: translateX(-50%);
+            cursor: pointer;
+        }
+
+        #timeDisplay {
+            position: absolute;
+            bottom: 18px;
+            right: 15px;
+            color: white;
+            font-size: 12px;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 2px 5px;
+            border-radius: 4px;
+            z-index: 20;
+        }
+
+        #channelGrid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(65px, 1fr));
+            gap: 8px;
+            padding: 5px;
+            max-width: 900px;
+            width: 100%;
+            overflow-y: auto;
+            margin-top: 0;
+        }
+
+        .channel-logo {
+            width: 65px;
+            height: 65px;
+            border-radius: 50%;
+            object-fit: cover;
+            cursor: pointer;
+            transition: transform 0.3s, box-shadow 0.3s;
+            border: 2px solid transparent;
+            padding: 5px;
+            background: rgba(0, 0, 0, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .channel-logo:hover {
+            transform: scale(1.15);
+            box-shadow: 0 0 15px #9333ea;
+            background: rgba(0, 0, 0, 0.35);
+        }
+
+        .active-channel {
+            border: 2px solid #3cff00;
+            box-shadow: 0 0 20px #9333ea;
+            background: rgba(0, 0, 0, 0.35);
+        }
+    </style>
+</head>
+
+<body>
+
+    <header class="banner-bg py-16 md:py-20 text-center">
+        <div class="banner-content container mx-auto px-4">
+            <h1 class="text-4xl md:text-6xl font-extrabold text-green-400 drop-shadow-lg mb-4">
+                QASIM JIHO
+            </h1>
+            <p class="text-lg md:text-2xl text-green-300 mb-6">
+                FREE Live HD TV STREAMING BY <span class="text-yellow-400">QASIM JIHO</span>
+            </p>
+
+        </div>
+    </header>
+
+    <div class=" player-box" id="playerBox" onclick="toggleControls()">
+        <video id="videoPlayer" class="w-full h-full" autoplay poster=""></video>
+        <div id="loader">
+            <div class="loader-spin"></div>
+        </div>
+
+        <!-- Player Controls -->
+        <div id="controls" class="controls">
+            <button onclick="prevChannel()" class="control-btn">⏮</button>
+            <button id="playBtn" onclick="togglePlay()" class="control-btn">▶</button>
+            <button id="muteBtn" onclick="toggleMute()" class="control-btn">🔊</button>
+            <button onclick="nextChannel()" class="control-btn">⏭</button>
+            <button onclick="toggleFullScreen()" class="control-btn">⛶</button>
+            <button onclick="toggleSizeMode()" class="control-btn">🖼</button>
+            <button onclick="toggleQualityMenu()" class="control-btn">⚙</button>
+        </div>
+
+        <div id="qualityMenu"></div>
+        <div id="progressContainer" onclick="seekVideo(event)">
+            <div id="progressBar"></div>
+            <div id="progressHandle"></div>
+        </div>
+        <div id="timeDisplay">00:00 / 00:00</div>
+        <div id="channelName">Select a channel</div>
+    </div>
+
+    <div id="channelGrid"></div>
+
+    <script src="channels.js"></script>
+    <script>
+        let video = document.getElementById("videoPlayer"), playBtn = document.getElementById("playBtn"), muteBtn = document.getElementById("muteBtn"), loader = document.getElementById("loader"), playerBox = document.getElementById("playerBox"), controls = document.getElementById("controls"), channelName = document.getElementById("channelName"), qualityMenu = document.getElementById("qualityMenu"), channels = [], hls = null, currentIndex = -1, sizeMode = "fit";
+
+        // Player Functions
+        function playChannel(el, name, url) {
+            loader.style.visibility = "visible";
+            currentIndex = channels.indexOf(el);
+            channelName.innerText = name;
+            channels.forEach(c => c.classList.remove("active-channel"));
+            el.classList.add("active-channel");
+
+            if (hls) { hls.destroy(); hls = null; }
+            if (Hls.isSupported()) {
+                hls = new Hls();
+                hls.loadSource(url);
+                hls.attachMedia(video);
+                hls.on(Hls.Events.MANIFEST_PARSED, (event, data) => {
+                    setupQualityMenu(data.levels); loader.style.visibility = "hidden"; video.play(); playBtn.innerText = "⏸";
+                });
+            } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+                video.src = url;
+                video.addEventListener("canplay", () => { video.play(); loader.style.visibility = "hidden"; playBtn.innerText = "⏸"; }, { once: true });
+            }
+        }
+
+        function setupQualityMenu(levels) {
+            qualityMenu.innerHTML = "";
+            let autoBtn = document.createElement("button"); autoBtn.innerText = "Auto"; autoBtn.onclick = () => { hls.currentLevel = -1; updateQualityActive(autoBtn); }; qualityMenu.appendChild(autoBtn);
+            levels.forEach((lvl, i) => { let btn = document.createElement("button"); btn.innerText = lvl.height + "p"; btn.onclick = () => { hls.currentLevel = i; updateQualityActive(btn); }; qualityMenu.appendChild(btn); });
+            updateQualityActive(autoBtn);
+        }
+        function updateQualityActive(activeBtn) { Array.from(qualityMenu.children).forEach(btn => btn.classList.remove("active-quality")); activeBtn.classList.add("active-quality"); }
+
+        function prevChannel() { if (currentIndex > 0) channels[currentIndex - 1].click(); }
+        function nextChannel() { if (currentIndex < channels.length - 1) channels[currentIndex + 1].click(); }
+        function togglePlay() { if (video.paused) { video.play(); playBtn.innerText = "⏸"; } else { video.pause(); playBtn.innerText = "▶"; } }
+        function toggleMute() { video.muted = !video.muted; muteBtn.innerText = video.muted ? "🔇" : "🔊"; }
+        function toggleFullScreen() { if (!document.fullscreenElement) { playerBox.requestFullscreen(); } else { document.exitFullscreen(); } }
+        function toggleSizeMode() { sizeMode = (sizeMode === "fit") ? "fill" : (sizeMode === "fill") ? "stretch" : "fit"; video.style.objectFit = (sizeMode === "fit") ? "contain" : (sizeMode === "fill") ? "cover" : "fill"; }
+        function toggleQualityMenu() { qualityMenu.style.display = (qualityMenu.style.display === "block") ? "none" : "block"; }
+        function toggleControls() { controls.classList.toggle("hidden"); channelName.classList.toggle("hidden"); progressContainer.classList.toggle("hidden"); timeDisplay.classList.toggle("hidden"); }
+        function goBack() { window.location.href = "index.html"; }
+
+        // Progress bar
+        const progressBar = document.getElementById("progressBar"), progressContainer = document.getElementById("progressContainer"), progressHandle = document.getElementById("progressHandle"), timeDisplay = document.getElementById("timeDisplay");
+        video.addEventListener('timeupdate', () => {
+            if (video.duration) {
+                const percent = (video.currentTime / video.duration) * 100; progressBar.style.width = percent + "%"; progressHandle.style.left = percent + "%";
+                const curMin = Math.floor(video.currentTime / 60).toString().padStart(2, '0'); const curSec = Math.floor(video.currentTime % 60).toString().padStart(2, '0');
+                const durMin = Math.floor(video.duration / 60).toString().padStart(2, '0'); const durSec = Math.floor(video.duration % 60).toString().padStart(2, '0');
+                timeDisplay.innerText = `${curMin}:${curSec} / ${durMin}:${durSec}`;
+            }
+        });
+        function seekVideo(e) { const rect = progressContainer.getBoundingClientRect(); let pos = (e.clientX - rect.left) / rect.width; video.currentTime = pos * video.duration; }
+        let dragging = false; progressHandle.addEventListener("mousedown", () => { dragging = true; });
+        document.addEventListener("mouseup", () => { dragging = false; });
+        document.addEventListener("mousemove", (e) => { if (dragging) { const rect = progressContainer.getBoundingClientRect(); let pos = (e.clientX - rect.left) / rect.width; pos = Math.max(0, Math.min(1, pos)); video.currentTime = pos * video.duration; } });
+
+        // Load channels after DOM
+        document.addEventListener("DOMContentLoaded", () => { channels = Array.from(document.querySelectorAll(".channel-logo")); });
+    </script>
+
+</body>
+
+</html>
+<!-- <div id="channelGrid"><img
+        src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT4atGM34rXtNQzx2wCnQQVzGSjU805qIOdFw&amp;usqp=CAU"
+        alt="Saudi Quran" class="channel-logo"><img
+        src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTGupfsMkkP5X3iP6XZx6yi2LSzq8_6TIOC-w&amp;usqp=CAU"
+        alt="Saudi Sunnah" class="channel-logo"><img
+        src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRuLdTFn4TdP5-rF7YyPXTvOKguRsWJ0q0-cEDZUJ1gKGIl85TEpTiYSx0&amp;s=10"
+        alt="Madani TV" class="channel-logo"><img
+        src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSqsvRHu6ZhAQdM0FE5MRF4Goto2-mcA6K4sw&amp;usqp=CAU"
+        alt="PTV Home" class="channel-logo"><img
+        src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQQIKXUbh96lR2jrQ90lzfteBQuVL8TROFk0w&amp;usqp=CAU"
+        alt="Bol TV" class="channel-logo"><img
+        src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTgK3r8pJhDdYfdu-8lGclYbvW6W4wB9lNqF-1MvwY05aPkBrB_1zigQHA&amp;s=10"
+        alt="Bol News" class="channel-logo"><img
+        src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTwagVGRGWczQgdzNC-RdEl1t0eF_C8_yzh-o-9WlBh7yfFR6ovB8AIKi61&amp;s=10"
+        alt="Express News" class="channel-logo"><img
+        src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTCfJKkUhCHVllOSPBVjwCFpPn9b-P_of0kjA&amp;usqp=CAU"
+        alt="Express Ent" class="channel-logo"><img
+        src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSnWayKJ8devGcnrbcnfboF1RETCKoWr2aFjP-1W8iw-1p4TlYmZ6bQwnlG&amp;s=10"
+        alt="Jalwa" class="channel-logo"><img src="http://8xm.tv/wp-content/uploads/2019/02/512X512p.png" alt="8XM"
+        class="channel-logo"><img
+        src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ5pVm-0Pp3hKucynZctFMIeh985gMe84RR3A&amp;usqp=CAU"
+        alt="Oxygen Tv" class="channel-logo"><img
+        src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSJvGC860EQrod1hNmPrj9gyzoub5Qgg2M0l_12dQS18O914xV-yjE1-zHH&amp;s=10"
+        alt="Geo Tv" class="channel-logo"><img
+        src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQTvmQmYYa9mh7dXePN1DEBpawvKb2Jcd0Shw&amp;usqp=CAU"
+        alt="Geo News" class="channel-logo"><img
+        src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTpxnA2_kHg8QgWos0GjlvCvENmdUgQhhTO1hIAwqSOE4Txfibg0oCxaq4&amp;s=10"
+        alt="Urdu 1" class="channel-logo"><img
+        src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQdzutge89wiGQnXi2_-xgth7iKTQiHQS1ZzQ&amp;usqp=CAU"
+        alt="A Plus" class="channel-logo"><img
+        src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTUKeKZG1vzTQk_qslUAkxCz_KwQo4bXdFL7d1OFpH6-XkZNk0&amp;s"
+        alt="AAJ Entertainment" class="channel-logo"><img
+        src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTw3XifA6zKwga4pcAvvSHEi4Jx-vMLbIBfjBijrZiG1hhVwtxJES73OqXk&amp;s=10"
+        alt="AAJ News" class="channel-logo"><img
+        src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSGsxWjXyJ9Nxvf78Le-W1jkerBBuztBahqs6VO3g8QZPVJC_LKagkmBYU&amp;s=10"
+        alt="Sindh TV" class="channel-logo"><img
+        src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTElWZUWbSKUaT9_4ZMQ_6rH2n7qzcRCsmrgw&amp;usqp=CAU"
+        alt="Sindh News" class="channel-logo"><img
+        src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR1Vbtybwih6wSaFraEAU6ym_-jyUXoz9qBYA&amp;usqp=CAU"
+        alt="KTN TV" class="channel-logo"><img
+        src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSqACj5a67chU59ADkTM8gApWbYjQjKyDzHEA&amp;usqp=CAU"
+        alt="KTN News" class="channel-logo"><img
+        src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR7a5ORjEqgt5veU6e0ltVmk_IZuov34IVWN4DwQELwboZIEJc&amp;s"
+        alt="Kashish TV" class="channel-logo"><img
+        src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSGw2NFUe2PRUaUZ5zPFexMWsJdD5XdTJhcUg&amp;usqp=CAU"
+        alt="Awaz TV" class="channel-logo"><img
+        src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ9ItuK1wSgi8G2Cluif09aNKdbxSYa5E1pYJw66W6RDjck2-KfHIlBAAM&amp;s=10"
+        alt="Time News" class="channel-logo"><img
+        src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQsltTCnRhJul3X7RgioroIN-fkR6G9nh7z3g&amp;usqp=CAU"
+        alt="Play TV" class="channel-logo"><img
+        src="https://upload.wikimedia.org/wikipedia/en/c/c3/Abb_Tak_news_logo.png" alt="AbbTak News"
+        class="channel-logo"><img
+        src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQxegS2MnXuq9RiMdfxqW8rfqlyFKTr5HwMgg&amp;usqp=CAU"
+        alt="Samaa TV" class="channel-logo"><img
+        src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRrs-9thVXyGDeokLLg9jJeGGRtg3P7WdWMzg&amp;usqp=CAU"
+        alt="Dawn News" class="channel-logo"><img
+        src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSkYgs_Akm-8OaExLxX2Jk1Vm3VKV6zTJake-vDe3Nho7vfL1C2zHFuEDDN&amp;s=10"
+        alt="Hum TV" class="channel-logo"><img
+        src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTmsgdiQC-oH_neSmr9rn4Q64tmaPXjW_pCeg&amp;usqp=CAU"
+        alt="Hum News" class="channel-logo"><img
+        src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTk5mYNrIsFgaQacU64xg6TXvnHdDrhK_s1Tg&amp;usqp=CAU"
+        alt="Dunya News" class="channel-logo"><img
+        src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTZYOj6PnXQCNoA2S1vK79MpuGOP5Y3ow4IA7kwj3yeNqdgrrz9M9l_QEA&amp;s=10"
+        alt="See TV" class="channel-logo"><img
+        src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQfsji6pOJevIdHmug5J2ppCxB40sBaCEqfqcnNo06Xrzr-uHNvKA6BoEk&amp;s=10"
+        alt="Baby TV" class="channel-logo"><img
+        src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTOoWEUxqSt1T1KHUwj-3S_U_TlAZ-JtR1ujQ&amp;usqp=CAU"
+        alt="Champion TV" class="channel-logo"><img
+        src="https://i1.wp.com/tvtonight.com.au/wp-content/uploads/2013-01-01_1835.jpg?w=290&amp;ssl=1" alt="Movie One"
+        class="channel-logo"><img
+        src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQN4ty614iusgACZsNv19qUIaOWQfjC_svwTg&amp;usqp=CAU"
+        alt="TV1" class="channel-logo"><img
+        src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS6nNDOHnQcTUrc927J8WJCKguprLBriecThA&amp;usqp=CAU"
+        alt="WASEB" class="channel-logo"><img
+        src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ3HxB_nRvvD0KireVtBymmZD-ZScTmYwQSow&amp;usqp=CAU"
+        alt="Roz News" class="channel-logo"><img
+        src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQZdvN4yiS31fNgC1fv48P-a7IXWi6MIe7yAQ&amp;usqp=CAU"
+        alt="VSH News" class="channel-logo"><img
+        src="https://pbs.twimg.com/media/EwAo8HrXMAITpUb?format=jpg&amp;name=360x360" alt="Channel 5"
+        class="channel-logo"><img
+        src="https://upload.wikimedia.org/wikipedia/commons/thumb/7/75/Deutsche_Welle_symbol_2012.svg/1200px-Deutsche_Welle_symbol_2012.svg.png"
+        alt="DW" class="channel-logo"><img
+        src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSPVRFCHHW_gH-9LSOuxX2zcLYQS3xQVXuTGw&amp;usqp=CAU"
+        alt="Cartoon Network" class="channel-logo"><img
+        src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTq40dDTWvE6YwjbB3LSdTapLtAbVtdRoLyiw&amp;usqp=CAU"
+        alt="Aruj TV" class="channel-logo"><img
+        src="https://pbs.twimg.com/profile_images/973580855317708801/0AJ7v7He.jpg" alt="A1 News"
+        class="channel-logo"><img src="https://pbs.twimg.com/media/EwAp_IFXIAEs3i3?format=jpg&amp;name=240x240"
+        alt="K21 News" class="channel-logo"><img
+        src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ9P-kqdcLO7biPX520IsodHU9A6LeqXO0F2w&amp;usqp=CAU"
+        alt="24 HD" class="channel-logo"><img
+        src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRF_NuLRli6VMhGWfP4NpFPLWWoiCpz4aasQA&amp;usqp=CAU"
+        alt="Anim Plan" class="channel-logo"><img
+        src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTWrOWoWUoQhKJrM-fmzeYa4FM_zgMZECXBaw&amp;usqp=CAU"
+        alt="NEWS1" class="channel-logo"><img
+        src="https://upload.wikimedia.org/wikipedia/commons/9/9a/Public-News-Logo-1.jpg" alt="Public News"
+        class="channel-logo"><img src="https://upload.wikimedia.org/wikipedia/en/a/a6/Neo_News_logo.jpg" alt="Neo News"
+        class="channel-logo"><img
+        src="https://upload.wikimedia.org/wikipedia/commons/thumb/b/b1/CNN.svg/1200px-CNN.svg.png" alt="CNN"
+        class="channel-logo"><img
+        src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS6dtEgQit4hjIDU8JUzhfFAhgjiXyG0Dw_Gg&amp;usqp=CAU"
+        alt="Capital TV" class="channel-logo"><img
+        src="https://upload.wikimedia.org/wikipedia/commons/thumb/5/58/Apna_channel_logo.png/440px-Apna_channel_logo.png"
+        alt="Apna Channel" class="channel-logo"><img
+        src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSdvENxFCSQlcJQBw32nlhW1xJHgrwf2DJfWA&amp;usqp=CAU"
+        alt="UK44" class="channel-logo"><img
+        src="https://pbs.twimg.com/media/EwA0kReXMAED5fI?format=jpg&amp;name=240x240" alt="PASHTO TV"
+        class="channel-logo"><img
+        src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS0kRh-QdxrJrPyMjxZkkazHwFNAkAie9cmTA&amp;usqp=CAU"
+        alt="PNN News" class="channel-logo"><img
+        src="https://pbs.twimg.com/media/EwA1CSFXcAMBFuz?format=jpg&amp;name=360x360" alt="Sach TV"
+        class="channel-logo"><img src="https://pbs.twimg.com/profile_images/1346771276317085696/N5bjSnvm_400x400.jpg"
+        alt="GTV" class="channel-logo"><img
+        src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTy2CV0JhL9ixGKo1Uh1ruuJhOPzaXjFMIW1A&amp;usqp=CAU"
+        alt="Afghan TV" class="channel-logo"><img
+        src="https://pbs.twimg.com/media/EwA2nl_XMAAA0Qf?format=jpg&amp;name=240x240" alt="Karobar TV"
+        class="channel-logo"><img
+        src="https://is5-ssl.mzstatic.com/image/thumb/Purple114/v4/23/19/8b/23198bd9-1aef-6776-249e-c2a88fb4af32/source/512x512bb.jpg"
+        alt="AVT Khyber" class="channel-logo"><img
+        src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRH7RahHiYlpoPwNbSZjiF6NoDL8ANdwrZ_CQ&amp;usqp=CAU"
+        alt="Khyber News" class="channel-logo"><img
+        src="https://pbs.twimg.com/media/EwA5-A6WEAAVeny?format=jpg&amp;name=small" alt="City42"
+        class="channel-logo"><img src="https://pbs.twimg.com/media/EwA6NsEXAAgdcOP?format=png&amp;name=360x360"
+        alt="KAY2" class="channel-logo"><img
+        src="https://pbs.twimg.com/profile_images/1234423034515279874/9Rrus36m_400x400.jpg" alt="City41"
+        class="channel-logo"><img
+        src="https://yt3.ggpht.com/ytc/AAUvwnh5smgopWMbWiIe7eXDVfXH3a7PYhwUoi9CclvY-Q=s900-c-k-c0x00ffffff-no-rj"
+        alt="ROHI" class="channel-logo"><img src="https://i.ytimg.com/vi/Ii3DzAnpREs/hqdefault_live.jpg" alt="Filmworld"
+        class="channel-logo"><img src="https://pbs.twimg.com/media/EwA7OZJWYAAaYFg?format=jpg&amp;name=240x240"
+        alt="Hum Masala" class="channel-logo"><img
+        src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRfyx7RH8sbEmTQVmfPajoCBKDMQj-pVRxJzw&amp;usqp=CAU"
+        alt="Mashriq" class="channel-logo"><img
+        src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQndr4CcgbXrrNs8wNz9j2LPNRftSNImlMlNQ&amp;usqp=CAU"
+        alt="Hum Sitaray" class="channel-logo"><img
+        src="https://www.brandsynario.com/directory/wp-content/uploads/2018/01/a-23.png" alt="Filmax"
+        class="channel-logo"></div> -->
+<script src="channels.js"></script>
+<script>
+    let video = document.getElementById("videoPlayer"), playBtn = document.getElementById("playBtn"), muteBtn = document.getElementById("muteBtn"), loader = document.getElementById("loader"), playerBox = document.getElementById("playerBox"), controls = document.getElementById("controls"), channelName = document.getElementById("channelName"), qualityMenu = document.getElementById("qualityMenu"), channels = [], hls = null, currentIndex = -1, sizeMode = "fit";
+
+    // Player Functions
+    function playChannel(el, name, url) {
+        loader.style.visibility = "visible";
+        currentIndex = channels.indexOf(el);
+        channelName.innerText = name;
+        channels.forEach(c => c.classList.remove("active-channel"));
+        el.classList.add("active-channel");
+
+        if (hls) { hls.destroy(); hls = null; }
+        if (Hls.isSupported()) {
+            hls = new Hls();
+            hls.loadSource(url);
+            hls.attachMedia(video);
+            hls.on(Hls.Events.MANIFEST_PARSED, (event, data) => {
+                setupQualityMenu(data.levels); loader.style.visibility = "hidden"; video.play(); playBtn.innerText = "⏸";
+            });
+        } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+            video.src = url;
+            video.addEventListener("canplay", () => { video.play(); loader.style.visibility = "hidden"; playBtn.innerText = "⏸"; }, { once: true });
+        }
+    }
+
+    function setupQualityMenu(levels) {
+        qualityMenu.innerHTML = "";
+        let autoBtn = document.createElement("button"); autoBtn.innerText = "Auto"; autoBtn.onclick = () => { hls.currentLevel = -1; updateQualityActive(autoBtn); }; qualityMenu.appendChild(autoBtn);
+        levels.forEach((lvl, i) => { let btn = document.createElement("button"); btn.innerText = lvl.height + "p"; btn.onclick = () => { hls.currentLevel = i; updateQualityActive(btn); }; qualityMenu.appendChild(btn); });
+        updateQualityActive(autoBtn);
+    }
+    function updateQualityActive(activeBtn) { Array.from(qualityMenu.children).forEach(btn => btn.classList.remove("active-quality")); activeBtn.classList.add("active-quality"); }
+
+    function prevChannel() { if (currentIndex > 0) channels[currentIndex - 1].click(); }
+    function nextChannel() { if (currentIndex < channels.length - 1) channels[currentIndex + 1].click(); }
+    function togglePlay() { if (video.paused) { video.play(); playBtn.innerText = "⏸"; } else { video.pause(); playBtn.innerText = "▶"; } }
+    function toggleMute() { video.muted = !video.muted; muteBtn.innerText = video.muted ? "🔇" : "🔊"; }
+    function toggleFullScreen() { if (!document.fullscreenElement) { playerBox.requestFullscreen(); } else { document.exitFullscreen(); } }
+    function toggleSizeMode() { sizeMode = (sizeMode === "fit") ? "fill" : (sizeMode === "fill") ? "stretch" : "fit"; video.style.objectFit = (sizeMode === "fit") ? "contain" : (sizeMode === "fill") ? "cover" : "fill"; }
+    function toggleQualityMenu() { qualityMenu.style.display = (qualityMenu.style.display === "block") ? "none" : "block"; }
+    function toggleControls() { controls.classList.toggle("hidden"); channelName.classList.toggle("hidden"); progressContainer.classList.toggle("hidden"); timeDisplay.classList.toggle("hidden"); }
+    function goBack() { window.location.href = "index.html"; }
+
+    // Progress bar
+    const progressBar = document.getElementById("progressBar"), progressContainer = document.getElementById("progressContainer"), progressHandle = document.getElementById("progressHandle"), timeDisplay = document.getElementById("timeDisplay");
+    video.addEventListener('timeupdate', () => {
+        if (video.duration) {
+            const percent = (video.currentTime / video.duration) * 100; progressBar.style.width = percent + "%"; progressHandle.style.left = percent + "%";
+            const curMin = Math.floor(video.currentTime / 60).toString().padStart(2, '0'); const curSec = Math.floor(video.currentTime % 60).toString().padStart(2, '0');
+            const durMin = Math.floor(video.duration / 60).toString().padStart(2, '0'); const durSec = Math.floor(video.duration % 60).toString().padStart(2, '0');
+            timeDisplay.innerText = `${curMin}:${curSec} / ${durMin}:${durSec}`;
+        }
+    });
+    function seekVideo(e) { const rect = progressContainer.getBoundingClientRect(); let pos = (e.clientX - rect.left) / rect.width; video.currentTime = pos * video.duration; }
+    let dragging = false; progressHandle.addEventListener("mousedown", () => { dragging = true; });
+    document.addEventListener("mouseup", () => { dragging = false; });
+    document.addEventListener("mousemove", (e) => { if (dragging) { const rect = progressContainer.getBoundingClientRect(); let pos = (e.clientX - rect.left) / rect.width; pos = Math.max(0, Math.min(1, pos)); video.currentTime = pos * video.duration; } });
+
+    // Load channels after DOM
+    document.addEventListener("DOMContentLoaded", () => { channels = Array.from(document.querySelectorAll(".channel-logo")); });
+</script>
+</body>
+<footer class="bg-black-400 py-10 text-center">
+    <p class="text-white-300 text-lg mb-2">Developed by <strong><span class="text-white-400">Qasim
+                Jiho</span></strong></p>
+    <p class="text-green-400 mb-4">Get live drama updates and exclusive streams!</p>
+
+    <p class="text-black-500 mt-4 text-sm">&copy; 2025 &rightarrow; Qasim Jiho &leftarrow;Trick. All rights
+        reserved.</p>
+</footer>
+
+</html>
